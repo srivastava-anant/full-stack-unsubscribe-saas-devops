@@ -67,3 +67,16 @@ async function seedDB() {
 }
 
 seedDB();
+Service.deleteMany({})
+  .then(() => {
+    console.log("Old services removed");
+    return Service.insertMany(services);
+  })
+  .then(() => {
+    console.log("Database seeded successfully");
+    mongoose.connection.close();
+  })
+  .catch(err => {
+    console.log(err);
+    mongoose.connection.close();
+  });
