@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+
+  mongo:
+    image: mongo
+    container_name: unsubscribe-mongo
+    ports:
+      - "27017:27017"
+
+  backend:
+    build: ./unsubscribe-backend
+    container_name: unsubscribe-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/unsubscribe
+    depends_on:
+      - mongo
+
+  frontend:
+    build: ./unsubscribe-frontend
+    container_name: unsubscribe-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
