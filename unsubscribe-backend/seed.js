@@ -1,10 +1,13 @@
 require("dotenv").config();
+
 const mongoose = require("mongoose");
 const Service = require("./models/Service");
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected for Seeding"))
-  .catch(err => console.log(err));
+const MONGO_URI = process.env.MONGO_URI || "mongodb://mongo:27017/unsubscribe";
+
+mongoose.connect(MONGO_URI)
+.then(() => console.log("MongoDB Connected for Seeding"))
+.catch(err => console.log(err));
 
 const services = [
   { name: "Netflix", domain: "netflix.com", link: "https://www.netflix.com/cancelplan", top: true, plans: ["Mobile: ₹149/mo", "Basic: ₹199/mo", "Standard: ₹499/mo", "Premium: ₹649/mo"] },
@@ -60,23 +63,20 @@ const services = [
 ];
 
 async function seedDB() {
-  await Service.deleteMany({});
-  await Service.insertMany(services);
-  console.log("Database Seeded Successfully");
-  mongoose.connection.close();
+  try {
+    // 1. Clear existing data
+    await Service.deleteMany({});
+    console.log("Old services removed");
+
+    // 2. Insert new data
+    await Service.insertMany(services);
+    console.log("Database Seeded Successfully");
+  } catch (err) {
+    console.error("Seeding error:", err);
+  } finally {
+    // 3. Close connection only after EVERYTHING is done
+    mongoose.connection.close();
+  }
 }
 
 seedDB();
-Service.deleteMany({})
-  .then(() => {
-    console.log("Old services removed");
-    return Service.insertMany(services);
-  })
-  .then(() => {
-    console.log("Database seeded successfully");
-    mongoose.connection.close();
-  })
-  .catch(err => {
-    console.log(err);
-    mongoose.connection.close();
-  });

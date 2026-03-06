@@ -1,121 +1,77 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const fs = require("fs");
-const path = require("path");
+const dotenv = require("dotenv");
+
+// Initialize environment variables
+dotenv.config();
 
 const app = express();
-app.use(express.json());
-app.use(cors());
 
-/*
-MongoDB Connection
-Important: inside Kubernetes we use the service name "mongo"
-*/
+// 1. MIDDLEWARE 
+// Crucial: app.use(cors()) allows your browser to fetch data from the backend
+app.use(cors());
+app.use(express.json());
+
+// 2. MONGOOSE CONNECTION
 const MONGO_URI = process.env.MONGO_URI || "mongodb://mongo:27017/unsubscribe";
 
-mongoose.connect(MONGO_URI, {
-useNewUrlParser: true,
-useUnifiedTopology: true
-})
-.then(() => console.log("MongoDB connected"))
-.catch(err => console.error("MongoDB connection error:", err));
+mongoose.connect(MONGO_URI)
+  .then(() => console.log("MongoDB Connected"))
+  .catch((err) => console.log("MongoDB Connection Error:", err));
 
-/*
-Service Schema
-*/
+// 3. SERVICE MODEL
 const serviceSchema = new mongoose.Schema({
-name: String,
-domain: String,
-link: String,
-top: Boolean,
-plans: [String]
+  name: String,
+  domain: String,
+  link: String,
+  plans: [String],
 });
 
 const Service = mongoose.model("Service", serviceSchema);
 
-/*
-Seed database from services.json if empty
-*/
-const seedDatabase = async () => {
-try {
-const count = await Service.countDocuments();
+// 4. API ROUTES
 
-```
-if (count === 0) {
-  const dataPath = path.join(__dirname, "services.json");
-  const rawData = fs.readFileSync(dataPath);
-  const services = JSON.parse(rawData);
-
-  await Service.insertMany(services);
-  console.log("Database seeded with services");
-} else {
-  console.log("Database already contains data");
-}
-```
-
-} catch (error) {
-console.error("Seeding error:", error);
-}
-};
-
-mongoose.connection.once("open", seedDatabase);
-
-/*
-Routes
-*/
-
-// Get all services
+// Get all services for the initial grid load
 app.get("/api/services", async (req, res) => {
-try {
-const services = await Service.find();
-res.json(services);
-} catch (error) {
-res.status(500).json({ error: "Failed to fetch services" });
-}
+  try {
+    const services = await Service.find();
+    res.json(services);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch services" });
+  }
 });
 
-// Get featured services
-app.get("/api/services/featured", async (req, res) => {
-try {
-const services = await Service.find({ top: true });
-res.json(services);
-} catch (error) {
-res.status(500).json({ error: "Failed to fetch featured services" });
-}
+// Get a single service by name for the plans modal
+app.get("/api/services/:name", async (req, res) => {
+  try {
+    const service = await Service.findOne({ name: req.params.name });
+    if (!service) return res.status(404).json({ error: "Service not found" });
+    res.json(service);
+  } catch (error) {
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
-// Search services
-app.get("/api/services/search", async (req, res) => {
-try {
-const query = req.query.q;
-
-```
-const services = await Service.find({
-  name: { $regex: query, $options: "i" }
+// Search route
+app.get("/api/search", async (req, res) => {
+  try {
+    const query = req.query.q;
+    const results = await Service.find({ name: new RegExp(query, 'i') });
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: "Search failed" });
+  }
 });
 
-res.json(services);
-```
-
-} catch (error) {
-res.status(500).json({ error: "Search failed" });
-}
-});
-
-/*
-Health check
-*/
+// Health check
 app.get("/health", (req, res) => {
-res.send("Backend running");
+  res.send("Backend running");
 });
 
-/*
-Server
-*/
+// 5. SERVER START
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
-

@@ -1,13 +1,14 @@
 {
   "name": "unsubscribe-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Unsubscribe SaaS backend",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "seed": "node seed.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Anant Srivastava",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
